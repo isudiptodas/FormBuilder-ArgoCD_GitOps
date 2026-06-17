@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: form-builder-backend
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: FormBuilder
+  template:
+    metadata:
+      labels:
+        app: FormBuilder
+    spec:
+      containers:
+      - name: form-builder-backend
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 5000
+        envFrom:
+          - secretRef:
+              name: formbuilder-secrets
+        readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
