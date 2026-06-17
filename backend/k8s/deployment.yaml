@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: form-builder-backend
-        image: nginx:1.14.2
+        image: isudiptodas/form-builder:2
         ports:
         - containerPort: 5000
         envFrom:
