@@ -1,0 +1,85 @@
+name: FormBuilder-Actions
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Setup Node
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      # 4. Run tests
+      - name: Run tests
+        working-directory: backend
+        env:
+            NODE_ENV: test
+            MONGO_TEST_URI: ${{ secrets.MONGO_TEST_URI }}
+            JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: npm test
+
+      # 5. Docker Login
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 6. Build Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -t ${{ secrets.IMAGE_TAG }}:${{ github.run_number }} \
+            ./backend
+
+      # 7. Push Image
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.IMAGE_TAG }}:${{ github.run_number }}
+
+      # 8. Logout
+      - name: Docker Logout
+        run: docker logout
+
+      # 9. Update K8s Manifest
+      - name: Update deployment image
+        run: |
+          sed -i "s|image: .*|image: ${{ secrets.IMAGE_TAG }}:${{ github.run_number }}|g" backend/k8s/deployment.yaml
+
+      # 10. Configure Git
+      - name: Configure Git
+        run: |
+          git config user.name "isudiptodas"
+          git config user.email "isudiptodas01@outlook.com"
+
+      # 11. Commit changes
+      - name: Commit manifest update
+        run: |
+          git add backend/k8s/deployment.yaml
+          git commit -m "Updated k8s image tag [skip ci]" || echo "No changes to commit"
+
+      # 12. Push changes
+      - name: Push changes
+        run: |
+          git push origin main
