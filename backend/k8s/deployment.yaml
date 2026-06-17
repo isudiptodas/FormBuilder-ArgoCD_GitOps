@@ -7,15 +7,15 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: FormBuilder
+      app: formbuilder
   template:
     metadata:
       labels:
-        app: FormBuilder
+        app: formbuilder
     spec:
       containers:
       - name: form-builder-backend
-        image: isudiptodas/form-builder:1
+        image: nginx:1.14.2
         ports:
         - containerPort: 5000
         envFrom:
